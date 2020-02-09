@@ -7,6 +7,9 @@ import { AuthService } from '../auth/auth.service';
 import { AuthModule } from '../auth/auth.module';
 import { SessionService } from '../session/session.service';
 import { SessionModule } from '../session/session.module';
+import { RolesGuard } from '../guards/roles.guard';
+import { APP_GUARD } from '@nestjs/core';
+import { LoginController } from './login.controller';
 
 @Module({
   imports: [
@@ -16,11 +19,19 @@ import { SessionModule } from '../session/session.module';
     SessionModule,
     AuthModule,
   ],
-  controllers: [UserController],
+  controllers: [
+    LoginController,
+    UserController,
+  ],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
     SessionService,
     UserService,
     AuthService,
   ],
 })
-export class UserModule {}
+export class UserModule {
+}

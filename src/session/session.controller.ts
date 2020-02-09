@@ -1,9 +1,7 @@
-import { Body, Controller, Delete, Headers, Post, Put, Req, UseInterceptors } from '@nestjs/common';
-import { CreateSessionDto, DeleteSessionDto, Session, VerifySessionDto } from '../classes/session.class';
-import { ApiOkResponse, ApiUseTags, ApiResponse, ApiNotFoundResponse } from '@nestjs/swagger';
+import { Controller, Post, Req, Res } from '@nestjs/common';
+import { ValidateSessionResponse } from '../classes/session.class';
+import { ApiUseTags, ApiResponse, ApiImplicitHeader } from '@nestjs/swagger';
 import { SessionService } from './session.service';
-import { ResponseMapperInterceptor } from '../interceptors/response-mapper.interceptor';
-import { SessionMap } from '../mappers/session.mapper';
 
 @ApiUseTags('Sessions')
 @Controller('api/session')
@@ -12,33 +10,41 @@ export class SessionController {
   constructor(private readonly sessionService: SessionService) {
   }
 
-  @ApiOkResponse({ type: Session, description: 'Returns session' })
-  @ApiNotFoundResponse({ description: 'User not found'})
-  @UseInterceptors(new ResponseMapperInterceptor<Session>(SessionMap.model))
-  @Put()
-  createSession(@Body() createSessionDto: CreateSessionDto) {
-    return this.sessionService.createSession(createSessionDto);
-  }
+  // @ApiOkResponse({ type: Session, description: 'Returns session' })
+  // @ApiNotFoundResponse({ description: 'User not found' })
+  // @ApiImplicitHeader({ name: 'X-AUTH-TOKEN', description: 'JWT Token', required: true })
+  // @UseInterceptors(new ResponseMapperInterceptor<Session>(SessionMap.model))
+  // @Put()
+  // createSession(@Body() createSessionDto: CreateSessionDto) {
+  //   return this.sessionService.createSession(createSessionDto);
+  // }
 
-  @ApiOkResponse({ type: Session, description: 'Returns session' })
-  @ApiNotFoundResponse({ description: 'Session not found, or expired'})
-  @UseInterceptors(new ResponseMapperInterceptor<Session>(SessionMap.model))
-  @Delete()
-  deleteSession(@Req() req) {
-    return this.sessionService.deleteSession(req.user.sessionId || '');
-  }
+  // @ApiOkResponse({ type: Session, description: 'Returns session' })
+  // @ApiNotFoundResponse({ description: 'Session not found, or expired' })
+  // @ApiImplicitHeader({ name: 'X-AUTH-TOKEN', description: 'JWT Token', required: true })
+  // @UseInterceptors(new ResponseMapperInterceptor<Session>(SessionMap.model))
+  // @Delete()
+  // deleteSession(@Req() req: any) {
+  //   return this.sessionService.deleteSession(req.user.sessionId || '');
+  // }
 
-  @ApiResponse({ status: 201, description: 'Valid session.'})
-  @ApiNotFoundResponse({ description: 'Invalid session.'})
+  @ApiResponse({ status: 203, type: ValidateSessionResponse, description: 'Invalid session.' })
+  @ApiResponse({ status: 200, type: ValidateSessionResponse, description: 'Valid session.' })
+  @ApiImplicitHeader({ name: 'X-AUTH-TOKEN', description: 'JWT Token', required: true })
   @Post('verify')
-  verifySession(@Body() verifySessionDto: VerifySessionDto) {
-    return this.sessionService.verifySession(verifySessionDto);
+  async verifySession(@Req() req: any, @Res() res: any) {
+    const valid = await this.sessionService.verifySession(req.user.sessionId || '');
+    if (!valid) {
+      res.status(203);
+    }
+    res.send({ valid });
   }
 
-  @ApiResponse({ status: 201, description: 'Valid session.'})
-  @ApiNotFoundResponse({ description: 'Invalid session.'})
-  @Post('extend')
-  extendSession(@Body() verifySessionDto: VerifySessionDto) {
-    return this.sessionService.extendSession(verifySessionDto);
-  }
+  // @ApiOkResponse({ description: 'Session extended.' })
+  // @ApiNotFoundResponse({ description: 'Session not found.' })
+  // @ApiImplicitHeader({ name: 'X-AUTH-TOKEN', description: 'JWT Token', required: true })
+  // @Post('extend')
+  // extendSession(@Req() req: any) {
+  //   return this.sessionService.extendSession(req.user.sessionId);
+  // }
 }

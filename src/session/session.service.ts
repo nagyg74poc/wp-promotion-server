@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { CreateSessionDto, DeleteSessionDto, Session, VerifySessionDto } from '../classes/session.class';
+import { CreateSessionDto, Session } from '../classes/session.class';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Error as MongooseError } from 'mongoose';
 import { ServerMessage, User } from '../classes/user.class';
@@ -55,45 +55,38 @@ export class SessionService {
     }
   }
 
-  public async verifySession(verifySessionDto: VerifySessionDto) {
+  public async verifySession(sessionId: string): Promise<boolean> {
     try {
-      return await this.sessionModel.verifySession(verifySessionDto.sessionId, (session) => {
-        if (session) {
-          return null;
-        } else {
-          throw new HttpException(
-            {
-              status: HttpStatus.NOT_FOUND,
-              message: 'Session doesn\'t exist',
-            },
-            HttpStatus.NOT_FOUND,
-          );
-        }
+      if (!sessionId) {
+        return false;
+      }
+      return await this.sessionModel.verifySession(sessionId, (session) => {
+        return session;
       });
     } catch (e) {
       errorHandler(e);
     }
   }
-
-  public async extendSession(verifySessionDto: VerifySessionDto) {
-    try {
-      return await this.sessionModel.extendSession(verifySessionDto.sessionId, (session) => {
-        if (session) {
-          return session;
-        } else {
-          throw new HttpException(
-            {
-              status: HttpStatus.NOT_FOUND,
-              message: 'Session doesn\'t exist',
-            },
-            HttpStatus.NOT_FOUND,
-          );
-        }
-      });
-    } catch (e) {
-      errorHandler(e);
-    }
-  }
+  //
+  // public async extendSession(sessionId: string) {
+  //   try {
+  //     return await this.sessionModel.extendSession(sessionId, (session) => {
+  //       if (session) {
+  //         return session;
+  //       } else {
+  //         throw new HttpException(
+  //           {
+  //             status: HttpStatus.NOT_FOUND,
+  //             message: 'Session doesn\'t exist',
+  //           },
+  //           HttpStatus.NOT_FOUND,
+  //         );
+  //       }
+  //     });
+  //   } catch (e) {
+  //     errorHandler(e);
+  //   }
+  // }
 }
 
 const errorHandler = e => {

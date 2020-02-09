@@ -1,4 +1,4 @@
-import { Injectable, MiddlewareFunction, NestMiddleware } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, MiddlewareFunction, NestMiddleware } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
@@ -20,7 +20,17 @@ export class JwtMiddleware implements NestMiddleware {
         }
         next();
       } catch (e) {
-        next(e);
+        if (e.constructor.name === 'HttpException') {
+          throw e;
+        } else {
+          throw new HttpException(
+            {
+              status: HttpStatus.INTERNAL_SERVER_ERROR,
+              message: e.message,
+            },
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
       }
     };
   }

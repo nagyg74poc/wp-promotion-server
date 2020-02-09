@@ -13,11 +13,15 @@ import {
 import { PwUtil } from '../helpers/password-hash';
 import { logger } from '../helpers/logger';
 import { SessionService } from '../session/session.service';
+import { Session } from '../classes/session.class';
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectModel('User') private readonly userModel: Model<User>,
+    @InjectModel('User')
+    private readonly userModel: Model<User>,
+    @InjectModel('Session')
+    private readonly sessionModel: Model<Session>,
     private readonly sessionService: SessionService,
   ) {
   }
@@ -85,6 +89,20 @@ export class UserService {
     }
   }
 
+  public async findBySessionId(sessionId: string): Promise<User | null> {
+    try {
+      const session = await this.sessionModel.findOne({ sessionId }).exec();
+      if (session){
+        this.sessionModel.extendSession(session.sessionId);
+        return await this.userModel.findOne({ _id: session.users_id }).exec();
+      } else {
+        return null;
+      }
+    } catch (e) {
+      errorHandler(e);
+    }
+  }
+
   public async editPassword(
     passwords: EditPasswordDto,
   ): Promise<EditPasswordResponse> {
@@ -146,7 +164,7 @@ export class UserService {
         ) {
           const token = await this.sessionService.createSession({ uid: user.id });
           if (token) {
-            return { user, sessionId: token.sessionId };
+            return { user, sessionId: token.sessionId};
           }
         } else {
           throw new HttpException(
@@ -165,10 +183,7 @@ export class UserService {
 
   public async logout(sessionId: string) {
     try {
-      const session = await this.sessionService.deleteSession(sessionId);
-      if (session) {
-        return session;
-      }
+      return await this.sessionService.deleteSession(sessionId);
     } catch (e) {
       errorHandler(e);
     }

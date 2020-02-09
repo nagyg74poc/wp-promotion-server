@@ -3,6 +3,7 @@ import { Error as MongooseError } from 'mongoose';
 import { Session, SessionTTLseconds } from '../classes/session.class';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ServerMessage } from '../classes/user.class';
+import { UserSchema } from '../user/user.schema';
 
 export const SessionSchema = new mongoose.Schema({
   sessionId: String,
@@ -23,25 +24,31 @@ SessionSchema.statics.verifySession = async function(sid: string, callback) {
     const session = await this.findOne({ sessionId: sid }).exec();
     if (session) {
       this.extendSession(sid, callback);
-      // callback(session);
+      callback(true);
+      return true;
     } else {
-      callback(null);
+      callback(false);
+      return false;
     }
   } catch (e) {
     errorHandler(e);
   }
 };
 
-SessionSchema.statics.extendSession = async function(sid: string, callback) {
+SessionSchema.statics.extendSession = async function(sid: string, callback?) {
   try {
     const session = await this.findOne({ sessionId: sid }).exec();
     if (session) {
       session.expires = new Date();
       session.expires.setSeconds(session.expires.getSeconds() + SessionTTLseconds);
       session.save();
-      callback(session);
+      if (callback) {
+        callback(session);
+      }
     } else {
-      callback(null);
+      if (callback) {
+        callback(null);
+      }
     }
 
   } catch (e) {

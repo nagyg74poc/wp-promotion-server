@@ -19,6 +19,7 @@ async function bootstrap() {
   await app.init();
   await app.listen(3000, () => {
     logger.info(`Server listening on http://localhost:3000`, null);
+    logger.info(`Swagger listening on http://localhost:3000/doc`, null);
   });
 }
 

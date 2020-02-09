@@ -40,9 +40,9 @@ export class DeleteSessionDto {
   sessionId: string;
 }
 
-export class VerifySessionDto {
-  @ApiModelProperty({ type: String, example: '66ad679ac26939e4c03bb18700980865dab858ef8e4fdc87b909ae9696399fad' })
-  sessionId: string;
+export class ValidateSessionResponse {
+  @ApiModelProperty({ type: Boolean, example: true })
+  valid: boolean;
 }
 
 export class sessionToken {

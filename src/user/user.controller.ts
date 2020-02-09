@@ -5,8 +5,15 @@ import {
   Param,
   Patch,
   Post,
-  Put, Req, Headers,
-  UseInterceptors, Res, HttpCode, HttpStatus,
+  Put,
+  Req,
+  Headers,
+  UseInterceptors,
+  Res,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  ReflectMetadata,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import {
@@ -15,21 +22,34 @@ import {
   EditPasswordResponse,
   EditUserDto,
   User,
-  LoginDto, ServerMessage,
+  LoginDto,
+  ServerMessage,
 } from '../classes/user.class';
-import { ApiUseTags, ApiOkResponse, ApiNotFoundResponse, ApiImplicitHeader, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiUseTags,
+  ApiOkResponse,
+  ApiNotFoundResponse,
+  ApiImplicitHeader,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ResponseMapperInterceptor } from '../interceptors/response-mapper.interceptor';
 import { UserMap } from '../mappers/user.mapper';
 import { ResponseArrayMapperInterceptor } from '../interceptors/response-array-mapper.interceptor';
-import { AuthService } from '../auth/auth.service';
+import { AuthGuard } from '../guards/auth.guard';
+import { Roles } from '../decorators/roles.decorator';
 
 @ApiUseTags('Users')
+@UseGuards(AuthGuard)
 @Controller('api/users')
 export class UserController {
-  constructor(private readonly userService: UserService, private readonly authService: AuthService) {
-  }
+  constructor(private readonly userService: UserService) {}
 
   @ApiOkResponse({ type: User, description: 'Returns the new user' })
+  @ApiImplicitHeader({
+    name: 'X-AUTH-TOKEN',
+    description: 'JWT Token',
+    required: true,
+  })
   @UseInterceptors(new ResponseMapperInterceptor<User>(UserMap.model))
   @Put()
   create(@Body() user: CreateUserDto) {
@@ -37,14 +57,25 @@ export class UserController {
   }
 
   @ApiOkResponse({ type: User, description: 'Returns edited user' })
+  @ApiImplicitHeader({
+    name: 'X-AUTH-TOKEN',
+    description: 'JWT Token',
+    required: true,
+  })
   @UseInterceptors(new ResponseMapperInterceptor<User>(UserMap.model))
   @Post()
   edit(@Body() user: EditUserDto) {
     return this.userService.edit(user);
   }
 
-  @ApiOkResponse({ type: [ User ], description: 'Returns all user' })
+  @ApiOkResponse({ type: [User], description: 'Returns all user' })
+  @ApiImplicitHeader({
+    name: 'X-AUTH-TOKEN',
+    description: 'JWT Token',
+    required: true,
+  })
   @UseInterceptors(new ResponseArrayMapperInterceptor<User[]>(UserMap.model))
+  @Roles('admin')
   @Get()
   findAll() {
     return this.userService.findAll();
@@ -52,6 +83,11 @@ export class UserController {
 
   @ApiOkResponse({ type: User, description: 'Returns a user' })
   @ApiNotFoundResponse({ description: 'User not found' })
+  @ApiImplicitHeader({
+    name: 'X-AUTH-TOKEN',
+    description: 'JWT Token',
+    required: true,
+  })
   @UseInterceptors(new ResponseMapperInterceptor<User>(UserMap.model))
   @Get(':userId')
   findById(@Param('userId') userId: string) {
@@ -62,40 +98,14 @@ export class UserController {
     type: EditPasswordResponse,
     description: 'Confirms password change',
   })
+  @ApiImplicitHeader({
+    name: 'X-AUTH-TOKEN',
+    description: 'JWT Token',
+    required: true,
+  })
   @Patch('password')
   editPassword(@Body() passwords: EditPasswordDto) {
     return this.userService.editPassword(passwords);
   }
 
-  @ApiOkResponse({ type: User, description: 'Returns user' })
-  @ApiNotFoundResponse({ description: 'User not found' })
-  @UseInterceptors(new ResponseMapperInterceptor<User>(UserMap.model))
-  @HttpCode(200)
-  @Post('login')
-  async login(@Body() loginDto: LoginDto, @Req() req) {
-    const response = await this.userService.login(loginDto);
-    if (response) {
-      const token: string = this.authService.createToken({
-        uid: response.user.id,
-        sessionId: response.sessionId,
-      });
-      req.res.header('Access-Control-Expose-Headers', 'X-AUTH-TOKEN,Content-type');
-      req.res.header('X-AUTH-TOKEN', token);
-      return response.user;
-    }
-  }
-
-  @ApiOkResponse({ type: ServerMessage, description: 'Session removed' })
-  @ApiResponse({ status: HttpStatus.ACCEPTED, type: ServerMessage, description: 'Session not found, or expired' })
-  @ApiImplicitHeader({ name: 'X-AUTH-TOKEN' })
-  @HttpCode(200)
-  @Post('logout')
-  async logout(@Req() req): Promise<ServerMessage> {
-    const result = await this.userService.logout(req.user.sessionId || '');
-    if (result) {
-      req.res.status(result.statusCode);
-      req.res.send(result);
-      return result;
-    }
-  }
 }
